@@ -8,12 +8,13 @@ As of writing this on 2024-05-04, nixos-unstable seems to come with nix 2.18.2
 
 ## Broken
 1. Running it without cloning the repo, since the expression depends on the api json response and its hash is always changing the hash in flake.lock has to be updated as well
-3. Running most programs with nix run
+2. Running most programs with ``nix run``, they should work when you install them though.
 
-## Usage
+## Basic usage
 ```
 git clone https://github.com/BatteredBunny/brew.nix
 cd brew.nix
-nix flake update cask
+nix flake update brew-cask
 nix build .#blender
+./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
