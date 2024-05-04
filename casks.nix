@@ -14,7 +14,11 @@ let
 
     src = pkgs.fetchurl {
       url = cask.url;
-      hash = builtins.convertHash { hash = cask.sha256; toHashFormat = "sri"; hashAlgo = "sha256"; };
+      hash = lib.optionalString (cask.sha256 != "no_check") (builtins.convertHash {
+        hash = cask.sha256;
+        toHashFormat = "sri";
+        hashAlgo = "sha256";
+      });
     };
 
     nativeBuildInputs = with pkgs; [
