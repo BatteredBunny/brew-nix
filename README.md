@@ -11,13 +11,13 @@ As of writing this on 2024-05-04, nixos-unstable seems to come with nix 2.18.2
 2. Some programs seem to refuse to run from non standard locations, since this is automatic there isnt a good way to fix it.
 
 ## Basic usage
-```
+```bash
 nix build github:BatteredBunny/brew-nix#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
 
 ## Using with home-manager
-```
+```nix
 # flake.nix
 inputs = {
   brew-nix = {
@@ -30,7 +30,7 @@ inputs = {
   };
 };
 ```
-```
+```nix
 # home.nix
 nixpkgs = {
   overlays = [
