@@ -3,7 +3,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     brew-casks = {
-      url = "https://formulae.brew.sh/api/cask.json";
+      url = "github:BatteredBunny/brew-api";
       flake = false;
     };
   };

@@ -7,16 +7,12 @@ It relies on nix 2.19 due to using ``builtins.convertHash``. So make sure you ha
 As of writing this on 2024-05-04, nixos-unstable seems to come with nix 2.18.2
 
 ## Limitations
-1. Running it without cloning the repo might not work. Since the expression depends on the api json response and its hash is always changing the hash in flake.lock has to be updated as well.
-2. Running most programs with ``nix run``, they should work when you install them though.
-3. Some programs seem to refuse to run from non standard locations, since this is automatic there isnt a good way to fix it.
+1. Running most programs with ``nix run``, they should work when you install them though.
+2. Some programs seem to refuse to run from non standard locations, since this is automatic there isnt a good way to fix it.
 
 ## Basic usage
 ```
-git clone https://github.com/BatteredBunny/brew-nix
-cd brew-nix
-nix flake update brew-cask
-nix build .#blender
+nix build github:BatteredBunny/brew-nix#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
 
@@ -24,7 +20,14 @@ nix build .#blender
 ```
 # flake.nix
 inputs = {
-  brew-nix.url = "github:BatteredBunny/brew-nix";
+  brew-nix = {
+    url = "github:BatteredBunny/brew-nix";
+    inputs.brew-api.follows = "brew-api";
+  };
+  brew-api = {
+    url = "github:BatteredBunny/brew-api";
+    flake = false;
+  };
 };
 ```
 ```

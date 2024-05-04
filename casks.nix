@@ -70,7 +70,7 @@ let
     };
   };
 
-  casks = builtins.fromJSON (builtins.readFile brew-casks);
+  casks = builtins.fromJSON (builtins.readFile (brew-casks + "/cask.json"));
 in
 builtins.listToAttrs (builtins.map
   (cask: {

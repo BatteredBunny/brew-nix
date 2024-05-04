@@ -3,13 +3,17 @@
     "brew-casks": {
       "flake": false,
       "locked": {
-        "narHash": "sha256-jrFFNR4ueIAdjvldUzT3Gz1vBPklc0N7APYuGTOoFuo=",
-        "type": "file",
-        "url": "https://formulae.brew.sh/api/cask.json"
+        "lastModified": 1714835127,
+        "narHash": "sha256-8xfIVSqyHTZLzjYHvGD6zj05603IgeoM6QK1YFP4s0s=",
+        "owner": "BatteredBunny",
+        "repo": "brew-api",
+        "rev": "56ae2ce02c1eb9fd75ea901911f01c848abcce85",
+        "type": "github"
       },
       "original": {
-        "type": "file",
-        "url": "https://formulae.brew.sh/api/cask.json"
+        "owner": "BatteredBunny",
+        "repo": "brew-api",
+        "type": "github"
       }
     },
     "flake-utils": {
