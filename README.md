@@ -18,3 +18,24 @@ nix flake update brew-cask
 nix build .#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
+
+## Using with home-manager
+```
+# flake.nix
+inputs = {
+  brew-nix.url = "github:BatteredBunny/brew.nix";
+};
+```
+```
+# home.nix
+nixpkgs = {
+  overlays = [
+    inputs.brew-nix.overlay.${builtins.currentSystem}
+  ];
+};
+
+home.packages = with pkgs; [
+  nixVersions.latest # if your nix version is under 2.19
+  brewCasks.marta 
+];
+```
