@@ -1,6 +1,6 @@
 {
   "nodes": {
-    "brew-casks": {
+    "brew-api": {
       "flake": false,
       "locked": {
         "lastModified": 1714835127,
@@ -52,7 +52,7 @@
     },
     "root": {
       "inputs": {
-        "brew-casks": "brew-casks",
+        "brew-api": "brew-api",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }

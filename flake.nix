@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    brew-casks = {
+    brew-api = {
       url = "github:BatteredBunny/brew-api";
       flake = false;
     };
@@ -11,7 +11,7 @@
   outputs =
     { nixpkgs
     , flake-utils
-    , brew-casks
+    , brew-api
     , ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -33,7 +33,7 @@
           ];
         };
 
-        packages = pkgs.callPackage ./casks.nix { inherit brew-casks; };
+        packages = pkgs.callPackage ./casks.nix { inherit brew-api; };
       }
     );
 }

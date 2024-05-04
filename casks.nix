@@ -1,4 +1,4 @@
-{ pkgs, lib, brew-casks, stdenv, ... }:
+{ pkgs, lib, brew-api, stdenv, ... }:
 let
   hasBinary = cask: lib.hasAttr "binary" (getArtifacts cask);
   hasApp = cask: lib.hasAttr "app" (getArtifacts cask);
@@ -70,7 +70,7 @@ let
     };
   };
 
-  casks = builtins.fromJSON (builtins.readFile (brew-casks + "/cask.json"));
+  casks = builtins.fromJSON (builtins.readFile (brew-api + "/cask.json"));
 in
 builtins.listToAttrs (builtins.map
   (cask: {
