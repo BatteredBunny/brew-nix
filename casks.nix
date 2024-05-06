@@ -25,6 +25,7 @@ let
       undmg
       unzip
       gzip
+      _7zz
     ] ++ lib.optional (hasPkg cask) (with pkgs; [
       xar
       cpio
@@ -35,6 +36,8 @@ let
       for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
         zcat $pkg | cpio -i
       done
+    '' + lib.optionalString (hasApp cask) ''
+      undmg $src || 7zz x $src
     '' + lib.optionalString (hasBinary cask && !hasApp cask && !hasPkg cask) ''
       if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
         gunzip $src -c > ${getBinary cask}
