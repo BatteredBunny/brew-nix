@@ -67,8 +67,8 @@ let
           cp -R Library/* $out/Library/
         fi
       '' else if (hasApp cask) then ''
-        mkdir -p $out/Applications/${sourceRoot}
-        cp -R . $out/Applications/${sourceRoot}
+        mkdir -p "$out/Applications/${sourceRoot}"
+        cp -R . "$out/Applications/${sourceRoot}"
 
         if [[ -e "$out/Applications/${sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
           makeWrapper "$out/Applications/${sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
