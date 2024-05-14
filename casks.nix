@@ -41,7 +41,7 @@ let
           zcat $pkg | cpio -i
         done
       '' else if (hasApp cask) then ''
-        undmg $src || 7zz x $src
+        undmg $src || 7zz x -snld $src
       '' else if (hasBinary cask) then ''
         if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
           gunzip $src -c > ${getBinary cask}
