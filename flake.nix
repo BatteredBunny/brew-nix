@@ -9,12 +9,19 @@
   };
 
   outputs =
-    { nixpkgs
+    { self
+    , nixpkgs
     , flake-utils
     , brew-api
     , ...
     }:
-    flake-utils.lib.eachDefaultSystem (
+    {
+      overlays.default = final: prev: {
+        brewCasks = self.packages;
+      };
+    }
+    //
+    (flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
@@ -35,5 +42,5 @@
 
         packages = pkgs.callPackage ./casks.nix { inherit brew-api; };
       }
-    );
+    ));
 }
