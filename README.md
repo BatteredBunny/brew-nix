@@ -39,7 +39,7 @@ inputs = {
 # home.nix
 nixpkgs = {
   overlays = [
-    inputs.brew-nix.overlay.${builtins.currentSystem}
+    inputs.brew-nix.overlays.default
   ];
 };
 
