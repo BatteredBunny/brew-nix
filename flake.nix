@@ -17,7 +17,7 @@
     }:
     {
       overlays.default = final: prev: {
-        brewCasks = self.packages;
+        brewCasks = self.packages.${final.system};
       };
     }
     //
