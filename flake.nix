@@ -28,11 +28,7 @@
           inherit system;
         };
       in
-      rec {
-        overlay = final: prev: {
-          brewCasks = packages;
-        };
-
+      {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             nixVersions.latest # needed for builtins.convertHash
