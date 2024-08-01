@@ -20,6 +20,9 @@ As of writing this on 2024-05-04, nixos-unstable seems to come with nix 2.18.2
 nix build github:BatteredBunny/brew-nix#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
+## Using with nix-darwin
+
+See [`examples/flake.nix`](examples/flake.nix).
 
 ## Using with home-manager
 ```nix
