@@ -1,3 +1,5 @@
+# The `flake.lock` for this flake probably won't work, it's for development,
+# better generate your own.
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-24.05-darwin";
@@ -7,7 +9,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     brew-nix = {
-      url = "git+file:../";
+      # for local testing via `nix flake check` while developing 
+      #url = "path:../";
+      url = "github:BatteredBunny/brew-nix";
       inputs.nix-darwin.follows = "nix-darwin";
       inputs.brew-api.follows = "brew-api";
       inputs.flake-utils.follows = "flake-utils";

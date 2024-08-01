@@ -32,16 +32,14 @@
         ]
       },
       "locked": {
-        "dirtyRev": "7c55a2f23925049c24f0f8f7cddfff89e20e976d-dirty",
-        "dirtyShortRev": "7c55a2f-dirty",
-        "lastModified": 1722601785,
-        "narHash": "sha256-HaU917XVRir5g0Werdx91ApoK66SVMsJxpkz6M1ALfc=",
-        "type": "git",
-        "url": "file:../"
+        "lastModified": 0,
+        "narHash": "sha256-gUsWbPS1Iutp1Yfw2MvQv+RMAWqZnQLudW/WKJ6tnWE=",
+        "path": "../",
+        "type": "path"
       },
       "original": {
-        "type": "git",
-        "url": "file:../"
+        "path": "../",
+        "type": "path"
       }
     },
     "flake-utils": {
