@@ -51,3 +51,45 @@ home.packages = with pkgs; [
   brewCasks.marta
 ];
 ```
+
+## Using packages with illegal characters in their name
+```nix
+# flake.nix
+{
+  inputs = {
+    brew-nix = {
+      url = "github:BatteredBunny/brew-nix";
+      inputs.brew-api.follows = "brew-api";
+    };
+    brew-api = {
+      url = "github:BatteredBunny/brew-api";
+      flake = false;
+    };
+  };
+  
+  outputs = inputs@{ self, brew-nix ... }:{
+    darwinConfigurations."YOURNAME" = nix-darwin.lib.darwinSystem {
+      modules = [
+        ./brew-apps.nix                           # Handles which brew apps to install
+        brew-nix.darwinModules.default            # Brew-nix module so we can get packages with pkgs.brewCasks
+      ];
+      specialArgs = { inherit inputs ;};
+    };
+  };
+}
+``` 
+
+
+```nix
+# brew-apps.nix
+{pkgs,...}:
+  {
+    brew-nix.enable = true;
+    environment.systemPackages = with pkgs.brewCasks; [
+      firefox                                      # works as expected
+      pkgs.brewCasks."firefox@developer-edition"   # works (installs the developer version of firefox)
+      # "firefox@developer-edition"                # doesn't work
+      # firefox@developer-edition                  # doesn't work as @ is a reserved character
+    ];
+}
+```
