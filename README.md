@@ -49,5 +49,6 @@ nixpkgs = {
 home.packages = with pkgs; [
   nixVersions.latest # if your nix version is under 2.19
   brewCasks.marta
+  brewCasks."firefox@developer-edition" # Casks with special characters in their name need to be defined in quotes
 ];
 ```
