@@ -52,6 +52,9 @@ let
 
     sourceRoot = lib.optionalString (hasApp cask) (getApp cask);
 
+    # Patching shebangs invalidates code signing
+    dontPatchShebangs = true;
+
     installPhase =
       if (hasPkg cask) then ''
         mkdir -p $out/Applications
