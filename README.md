@@ -24,6 +24,22 @@ Requires at least nixos 24.11 or nixos-unstable to work due to relying on ``buil
 nix build github:BatteredBunny/brew-nix#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
+
+## Overriding casks with no hash
+Many casks come with no hash so you have to provide on yourself
+```nix
+home.packages = with pkgs; [
+  (brewCasks.marta.overrideAttrs (o: {
+    src = pkgs.fetchurl {
+      url = builtins.head oldAttrs.src.urls;
+      hash = lib.fakeHash; # Replace me with real hash after building once
+    };
+  }))
+];
+```
+
+# Usage examples
+
 ## Using with nix-darwin
 
 See [`examples/flake.nix`](examples/flake.nix).
