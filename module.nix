@@ -1,5 +1,5 @@
-{ brewCasks, nixRequiredVersion }:
-{ config, pkgs, lib, ... }: let
+{ brewCasks }:
+{ config, lib, ... }: let
   cfg = config.brew-nix;
 in
 with lib; {
@@ -9,13 +9,5 @@ with lib; {
 
   config = mkIf cfg.enable {
     nixpkgs.overlays = [ brewCasks ];
-    nix.package = mkDefault (nixRequiredVersion.package pkgs);
-
-    assertions = [
-      {
-        assertion = nixRequiredVersion.versionSatisfiesRequirement pkgs config.nix.package;
-        message = nixRequiredVersion.message;
-      }
-    ];
   };
 }
