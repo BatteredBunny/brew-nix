@@ -15,6 +15,10 @@ Requires at least nixos 24.11 or nixos-unstable to work due to relying on ``buil
 3. About 700 casks dont come with hashes, so you have to override the package and provide the hash yourself.
 4. Having multiple generations of this will take A LOT of space, so keep that in mind
 
+## Related projects
+- [mac-app-util](https://github.com/hraban/mac-app-util)
+- [nixcasks](https://github.com/jcszymansk/nixcasks)
+
 ## Basic usage
 ```bash
 nix build github:BatteredBunny/brew-nix#blender
