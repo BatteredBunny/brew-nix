@@ -19,6 +19,8 @@ Requires at least nixos 24.11 or nixos-unstable to work due to relying on ``buil
 - [mac-app-util](https://github.com/hraban/mac-app-util)
 - [nixcasks](https://github.com/jcszymansk/nixcasks)
 
+# Usage examples
+
 ## Basic usage
 ```bash
 nix build github:BatteredBunny/brew-nix#blender
@@ -37,8 +39,6 @@ home.packages = with pkgs; [
   }))
 ];
 ```
-
-# Usage examples
 
 ## Using with nix-darwin
 
