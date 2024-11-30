@@ -2,12 +2,12 @@
 
 Experimental nix expression to package all MacOS casks from [homebrew](https://brew.sh/) automatically.
 
+## Dependencies
+Requires at least nixos 24.11 or nixos-unstable to work due to relying on ``builtins.convertHash`` from nix 2.19
+
 ## Benefits over nix-darwin's homebrew module
 1. No homebrew needed, packages are fully managed by nix.
 2. Fully nix package expressions, everything is type checked and it will give you an error when you specify an invalid package for example.
-
-## Dependencies
-Requires at least nixos 24.11 or nixos-unstable to work due to relying on ``builtins.convertHash`` from nix 2.19
 
 ## Limitations/flaws
 1. Running most programs with ``nix run`` wont work, so you should install them first.
