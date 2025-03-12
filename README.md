@@ -28,7 +28,7 @@ nix build github:BatteredBunny/brew-nix#blender
 Many casks come with no hash so you have to provide one yourself
 ```nix
 home.packages = with pkgs; [
-  (brewCasks.marta.overrideAttrs (o: {
+  (brewCasks.marta.overrideAttrs (oldAttrs: {
     src = pkgs.fetchurl {
       url = builtins.head oldAttrs.src.urls;
       hash = lib.fakeHash; # Replace me with real hash after building once
