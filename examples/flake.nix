@@ -23,18 +23,29 @@
     };
   };
 
-  outputs = { self, nixpkgs, nix-darwin, brew-nix, ... }: {
-    darwinConfigurations.somehost = nix-darwin.lib.darwinSystem {
-      system = "x86_64-darwin";
-      modules = [
-        brew-nix.darwinModules.default
-        ({ pkgs, ... }: {
-          brew-nix.enable = true;
-          environment.systemPackages = [
-            pkgs.brewCasks.marta
-          ];
-        })
-      ];
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nix-darwin,
+      brew-nix,
+      ...
+    }:
+    {
+      darwinConfigurations.somehost = nix-darwin.lib.darwinSystem {
+        system = "x86_64-darwin";
+        modules = [
+          brew-nix.darwinModules.default
+          (
+            { pkgs, ... }:
+            {
+              brew-nix.enable = true;
+              environment.systemPackages = [
+                pkgs.brewCasks.marta
+              ];
+            }
+          )
+        ];
+      };
     };
-  };
 }

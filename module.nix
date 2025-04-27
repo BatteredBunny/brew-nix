@@ -1,8 +1,10 @@
 { brewCasks }:
-{ config, lib, ... }: let
+{ config, lib, ... }:
+let
   cfg = config.brew-nix;
 in
-with lib; {
+with lib;
+{
   options = {
     brew-nix.enable = mkEnableOption "Activate brew-nix overlay and casks at `pkgs.brewCasks`";
   };

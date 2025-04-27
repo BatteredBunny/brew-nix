@@ -13,12 +13,13 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , brew-api
-    , nix-darwin
-    , ...
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      brew-api,
+      nix-darwin,
+      ...
     }:
     rec {
       overlays.default = final: prev: {
@@ -26,8 +27,7 @@
       };
       darwinModules.default = (import ./module.nix) { brewCasks = overlays.default; };
     }
-    //
-    (flake-utils.lib.eachDefaultSystem (
+    // (flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
@@ -41,7 +41,12 @@
           ];
         };
 
-        packages = import ./casks.nix { inherit brew-api; inherit pkgs; lib = pkgs.lib; stdenv = pkgs.stdenv; };
+        packages = import ./casks.nix {
+          inherit brew-api;
+          inherit pkgs;
+          lib = pkgs.lib;
+          stdenv = pkgs.stdenv;
+        };
 
         # XXX: the check only runs successful on Darwin systems, but is provided for "eachDefaultSystem",
         #      including Linux; probably best to limit systems in general, since `casks.nix` is obviously
