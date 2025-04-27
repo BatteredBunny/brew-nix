@@ -7,17 +7,16 @@
 }:
 let
   getName = cask: builtins.elemAt cask.name 0;
-
-  getBinary = cask: builtins.elemAt (getArtifacts cask).binary 0;
-  getApp = cask: builtins.elemAt (getArtifacts cask).app 0;
-  getArtifacts = cask: lib.mergeAttrsList cask.artifacts;
+  getBinary = artifacts: builtins.elemAt artifacts.binary 0;
+  getApp = artifacts: builtins.elemAt artifacts.app 0;
 
   caskToDerivation =
     cask:
     let
-      isBinary = lib.hasAttr "binary" (getArtifacts cask);
-      isApp = lib.hasAttr "app" (getArtifacts cask);
-      isPkg = lib.hasAttr "pkg" (getArtifacts cask);
+      artifacts = lib.mergeAttrsList cask.artifacts;
+      isBinary = lib.hasAttr "binary" artifacts;
+      isApp = lib.hasAttr "app" artifacts;
+      isPkg = lib.hasAttr "pkg" artifacts;
     in
     stdenv.mkDerivation (finalAttrs: {
       pname = cask.token;
@@ -60,15 +59,15 @@ let
         else if isBinary then
           ''
             if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
-              gunzip $src -c > ${getBinary cask}
+              gunzip $src -c > ${getBinary artifacts}
             elif [ "$(file --mime-type -b "$src")" == "application/x-mach-binary" ]; then
-              cp $src ${getBinary cask}
+              cp $src ${getBinary artifacts}
             fi
           ''
         else
           "";
 
-      sourceRoot = lib.optionalString isApp (getApp cask);
+      sourceRoot = lib.optionalString isApp (getApp artifacts);
 
       # Patching shebangs invalidates code signing
       dontPatchShebangs = true;
@@ -112,7 +111,7 @@ let
         inherit (cask) homepage;
         description = cask.desc;
         platforms = lib.platforms.darwin;
-        mainProgram = if (isBinary && !isApp) then (getBinary cask) else cask.token;
+        mainProgram = if (isBinary && !isApp) then (getBinary artifacts) else cask.token;
       };
     });
 
