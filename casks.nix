@@ -6,10 +6,6 @@
   ...
 }:
 let
-  hasBinary = cask: lib.hasAttr "binary" (getArtifacts cask);
-  hasApp = cask: lib.hasAttr "app" (getArtifacts cask);
-  hasPkg = cask: lib.hasAttr "pkg" (getArtifacts cask);
-
   getName = cask: builtins.elemAt cask.name 0;
 
   getBinary = cask: builtins.elemAt (getArtifacts cask).binary 0;
@@ -18,6 +14,11 @@ let
 
   caskToDerivation =
     cask:
+    let
+      isBinary = lib.hasAttr "binary" (getArtifacts cask);
+      isApp = lib.hasAttr "app" (getArtifacts cask);
+      isPkg = lib.hasAttr "pkg" (getArtifacts cask);
+    in
     stdenv.mkDerivation (finalAttrs: {
       pname = cask.token;
       inherit (cask) version;
@@ -36,7 +37,7 @@ let
           _7zz
           makeWrapper
         ]
-        ++ lib.optional (hasPkg cask) (
+        ++ lib.optional isPkg (
           with pkgs;
           [
             xar
@@ -45,18 +46,18 @@ let
         );
 
       unpackPhase =
-        if (hasPkg cask) then
+        if isPkg then
           ''
             xar -xf $src
             for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
               zcat $pkg | cpio -i
             done
           ''
-        else if (hasApp cask) then
+        else if isApp then
           ''
             undmg $src || 7zz x -snld $src
           ''
-        else if (hasBinary cask) then
+        else if isBinary then
           ''
             if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
               gunzip $src -c > ${getBinary cask}
@@ -67,13 +68,13 @@ let
         else
           "";
 
-      sourceRoot = lib.optionalString (hasApp cask) (getApp cask);
+      sourceRoot = lib.optionalString isApp (getApp cask);
 
       # Patching shebangs invalidates code signing
       dontPatchShebangs = true;
 
       installPhase =
-        if (hasPkg cask) then
+        if isPkg then
           ''
             mkdir -p $out/Applications
             cp -R Applications/* $out/Applications/
@@ -88,7 +89,7 @@ let
               cp -R Library/* $out/Library/
             fi
           ''
-        else if (hasApp cask) then
+        else if isApp then
           ''
             mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
             cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
@@ -99,7 +100,7 @@ let
               makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
             fi
           ''
-        else if (hasBinary cask && !hasApp cask) then
+        else if (isBinary && !isApp) then
           ''
             mkdir -p $out/bin
             cp -R ./* $out/bin
@@ -111,7 +112,7 @@ let
         inherit (cask) homepage;
         description = cask.desc;
         platforms = lib.platforms.darwin;
-        mainProgram = if (hasBinary cask && !hasApp cask) then (getBinary cask) else cask.token;
+        mainProgram = if (isBinary && !isApp) then (getBinary cask) else cask.token;
       };
     });
 
