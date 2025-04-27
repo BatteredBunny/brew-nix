@@ -1,8 +1,8 @@
 {
   pkgs,
-  lib,
+  lib ? pkgs.lib,
   brew-api,
-  stdenv,
+  stdenv ? pkgs.stdenv,
   ...
 }:
 let

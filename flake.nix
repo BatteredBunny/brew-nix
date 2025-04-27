@@ -42,9 +42,6 @@
         import ./casks.nix {
           inherit brew-api;
           inherit pkgs;
-          lib = pkgs.lib;
-          stdenv = pkgs.stdenv;
-        };
         }
       );
 
