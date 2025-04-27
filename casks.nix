@@ -18,12 +18,12 @@ let
 
   caskToDerivation =
     cask:
-    stdenv.mkDerivation rec {
+    stdenv.mkDerivation (finalAttrs: {
       pname = cask.token;
-      version = cask.version;
+      inherit (cask) version;
 
       src = pkgs.fetchurl {
-        url = cask.url;
+        inherit (cask) url;
         sha256 = lib.optionalString (cask.sha256 != "no_check") cask.sha256;
       };
 
@@ -90,13 +90,13 @@ let
           ''
         else if (hasApp cask) then
           ''
-            mkdir -p "$out/Applications/${sourceRoot}"
-            cp -R . "$out/Applications/${sourceRoot}"
+            mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
+            cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
 
-            if [[ -e "$out/Applications/${sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
-              makeWrapper "$out/Applications/${sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
-            elif [[ -e "$out/Applications/${sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" sourceRoot}" ]]; then
-              makeWrapper "$out/Applications/${sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" sourceRoot}" $out/bin/${cask.token}
+            if [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
+              makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
+            elif [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
+              makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
             fi
           ''
         else if (hasBinary cask && !hasApp cask) then
@@ -108,16 +108,16 @@ let
           "";
 
       meta = {
-        homepage = cask.homepage;
+        inherit (cask) homepage;
         description = cask.desc;
         platforms = lib.platforms.darwin;
-        mainProgram = if (hasBinary cask && !hasApp cask) then (getBinary cask) else (cask.token);
+        mainProgram = if (hasBinary cask && !hasApp cask) then (getBinary cask) else cask.token;
       };
-    };
+    });
 
-  casks = builtins.fromJSON (builtins.readFile (brew-api + "/cask.json"));
+  casks = lib.importJSON (brew-api + "/cask.json");
 in
-builtins.listToAttrs (
+lib.listToAttrs (
   builtins.map (cask: {
     name = cask.token;
     value = caskToDerivation cask;
