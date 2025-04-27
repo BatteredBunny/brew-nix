@@ -1,7 +1,6 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
     brew-api = {
       url = "github:BatteredBunny/brew-api";
       flake = false;
@@ -16,51 +15,57 @@
     {
       self,
       nixpkgs,
-      flake-utils,
       brew-api,
       nix-darwin,
       ...
     }:
-    rec {
-      overlays.default = final: prev: {
-        brewCasks = self.packages.${final.system};
-      };
-      darwinModules.default = (import ./module.nix) { brewCasks = overlays.default; };
-    }
-    // (flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-        };
-      in
-      {
-        devShells.default = pkgs.mkShell {
+    let
+      inherit (nixpkgs) lib;
+
+      systems = [
+        "x86_64-darwin"
+        "aarch64-darwin"
+      ];
+      forAllSystems = f: lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
+    in
+    {
+      devShells = forAllSystems (pkgs: {
+        default = pkgs.mkShell {
           buildInputs = with pkgs; [
             wget
           ];
         };
+      });
 
-        packages = import ./casks.nix {
+      packages = forAllSystems (
+        pkgs:
+        import ./casks.nix {
           inherit brew-api;
           inherit pkgs;
           lib = pkgs.lib;
           stdenv = pkgs.stdenv;
         };
+        }
+      );
 
-        # XXX: the check only runs successful on Darwin systems, but is provided for "eachDefaultSystem",
-        #      including Linux; probably best to limit systems in general, since `casks.nix` is obviously
-        #      tailored towards Darwin systems and not Linux or anything else
-        checks.build-examples =
-          let
-            # override darwin-rebuild to use correct Nix version
-            darwin-rebuild = nix-darwin.packages.${system}.darwin-rebuild;
-          in
-          pkgs.runCommandLocal "build-examples" { } ''
+      overlays.default = final: _: {
+        brewCasks = self.packages.${final.system};
+      };
+
+      darwinModules.default = lib.modules.importApply ./module.nix { brewCasks = self.overlays.default; };
+
+      checks = forAllSystems (
+        pkgs:
+        let
+          inherit (nix-darwin.packages.${pkgs.stdenv.hostPlatorm}) darwin-rebuild;
+        in
+        {
+          build-examples = pkgs.runCommandLocal "build-examples" { } ''
             export HOME=$(mktemp -d)
             ${darwin-rebuild}/bin/darwin-rebuild build --flake ${self}/examples#somehost
             mkdir "$out"
           '';
-      }
-    ));
+        }
+      );
+    };
 }
