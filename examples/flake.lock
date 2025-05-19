@@ -3,11 +3,11 @@
     "brew-api": {
       "flake": false,
       "locked": {
-        "lastModified": 1722594564,
-        "narHash": "sha256-mE90Gy9+m+L92D3geFieXGQGp9gIJthasE6LS50Jr5c=",
+        "lastModified": 1745785778,
+        "narHash": "sha256-3pl6qGwNrNxxm4y4BsSbLzST3hFFqa1Wy5ZMwcDb35Y=",
         "owner": "BatteredBunny",
         "repo": "brew-api",
-        "rev": "7849cc738fbf88d7a98d9a57aa663e5cf4df30e8",
+        "rev": "9d7ade5cec55b36ee2e5f4d88d8aafa823ab3755",
         "type": "github"
       },
       "original": {
@@ -21,9 +21,7 @@
         "brew-api": [
           "brew-api"
         ],
-        "flake-utils": [
-          "flake-utils"
-        ],
+        "flake-utils": "flake-utils",
         "nix-darwin": [
           "nix-darwin"
         ],
@@ -32,14 +30,17 @@
         ]
       },
       "locked": {
-        "lastModified": 0,
-        "narHash": "sha256-gUsWbPS1Iutp1Yfw2MvQv+RMAWqZnQLudW/WKJ6tnWE=",
-        "path": "../",
-        "type": "path"
+        "lastModified": 1741852768,
+        "narHash": "sha256-OHY03ODmfBmb8AwxPaMYTtIiZIxTWSoaYAGlyEMYv6o=",
+        "owner": "BatteredBunny",
+        "repo": "brew-nix",
+        "rev": "df708642eedf3fec87858b66af784b834ac19026",
+        "type": "github"
       },
       "original": {
-        "path": "../",
-        "type": "path"
+        "owner": "BatteredBunny",
+        "repo": "brew-nix",
+        "type": "github"
       }
     },
     "flake-utils": {
@@ -47,11 +48,11 @@
         "systems": "systems"
       },
       "locked": {
-        "lastModified": 1710146030,
-        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
         "owner": "numtide",
         "repo": "flake-utils",
-        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
         "type": "github"
       },
       "original": {
@@ -67,11 +68,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1722500642,
-        "narHash": "sha256-Vls0TQRdplex1JslnBxEk3M26Q1vR+OSg+sk5rBG4DA=",
+        "lastModified": 1744478979,
+        "narHash": "sha256-dyN+teG9G82G+m+PX/aSAagkC+vUv0SgUw3XkPhQodQ=",
         "owner": "LnL7",
         "repo": "nix-darwin",
-        "rev": "b47af8628624856ad6853168298f1f96364d92d6",
+        "rev": "43975d782b418ebf4969e9ccba82466728c2851b",
         "type": "github"
       },
       "original": {
@@ -82,11 +83,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1722460556,
-        "narHash": "sha256-icgowa4FsmHJ2lH7wGwF95e7fvm7IsSVkhn6yjmHXdA=",
+        "lastModified": 1735564410,
+        "narHash": "sha256-HB/FA0+1gpSs8+/boEavrGJH+Eq08/R2wWNph1sM1Dg=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "b87dfeec0dd13dd7bdea01877df48a8d7eb46091",
+        "rev": "1e7a8f391f1a490460760065fa0630b5520f9cf8",
         "type": "github"
       },
       "original": {
@@ -100,7 +101,6 @@
       "inputs": {
         "brew-api": "brew-api",
         "brew-nix": "brew-nix",
-        "flake-utils": "flake-utils",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs"
       }
