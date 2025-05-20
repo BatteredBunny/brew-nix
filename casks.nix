@@ -2,13 +2,13 @@
   pkgs,
   lib ? pkgs.lib,
   brew-api,
-  stdenv ? pkgs.stdenv,
+  stdenvNoCC ? pkgs.stdenvNoCC,
   currentMacosName ? "sequoia",
   ...
 }: let
-  getName = cask: builtins.elemAt cask.name 0;
-  getBinary = artifacts: builtins.elemAt artifacts.binary 0;
-  getApp = artifacts: builtins.elemAt artifacts.app 0;
+  getName = cask: lib.lists.elemAt cask.name 0;
+  getBinary = artifacts: lib.lists.elemAt artifacts.binary 0;
+  getApp = artifacts: lib.lists.elemAt artifacts.app 0;
 
   getVariationData = cask: let
     orderedMacosVersions = [
@@ -20,58 +20,59 @@
     ];
 
     archPrefix =
-      if stdenv.hostPlatform.isAarch64
+      if stdenvNoCC.hostPlatform.isAarch64
       then "arm64_"
       else ""; # x86_64 is the implicit default
 
     variations =
-      if lib.hasAttr "variations" cask && cask.variations != null && cask.variations != {}
+      if lib.attrsets.hasAttr "variations" cask && cask.variations != null && cask.variations != {}
       then cask.variations
       else null;
 
     findBestVariation = osIndex:
-      if variations == null || osIndex >= builtins.length orderedMacosVersions
-      then {}
+      if variations == null || osIndex >= lib.lists.length orderedMacosVersions
+      then {inherit (cask) url sha256 version artifacts;}
       else let
-        osName = builtins.elemAt orderedMacosVersions osIndex;
+        osName = lib.lists.elemAt orderedMacosVersions osIndex;
         archSpecificKey = "${archPrefix}${osName}";
         osSpecificKey = osName;
       in
-        if lib.hasAttr archSpecificKey variations
+        if lib.attrsets.hasAttr archSpecificKey variations
         then variations."${archSpecificKey}"
-        else if lib.hasAttr osSpecificKey variations
+        else if lib.attrsets.hasAttr osSpecificKey variations
         then variations."${osSpecificKey}"
         else findBestVariation (osIndex + 1);
 
     currentOsIndex = lib.lists.findFirstIndex (name: name == currentMacosName) null orderedMacosVersions;
-
     bestVariationAttributes = findBestVariation (
       if currentOsIndex != null
       then currentOsIndex
       else 0
     );
-  in
-    builtins.recursiveAttrsMerge bestVariationAttributes {
-      inherit (cask) url sha256 version;
-      artifacts = lib.mergeAttrsList (bestVariationAttributes.artifacts or cask.artifacts);
-    };
+  in {
+    url = bestVariationAttributes.url or cask.url;
+    sha256 = bestVariationAttributes.sha256 or cask.sha256;
+    version = bestVariationAttributes.version or cask.version;
+    artifacts = bestVariationAttributes.artifacts or cask.artifacts;
+  };
 
   caskToDerivation = cask: let
     variationData = getVariationData cask;
 
-    artifacts = lib.mergeAttrsList variationData.artifacts;
+    inherit(variationData) url sha256 version;
+    artifacts = lib.attrsets.mergeAttrsList variationData.artifacts;
 
-    isBinary = lib.hasAttr "binary" artifacts;
-    isApp = lib.hasAttr "app" artifacts;
-    isPkg = lib.hasAttr "pkg" artifacts;
+    isBinary = lib.attrsets.hasAttr "binary" artifacts;
+    isApp = lib.attrsets.hasAttr "app" artifacts;
+    isPkg = lib.attrsets.hasAttr "pkg" artifacts;
   in
-    stdenv.mkDerivation (finalAttrs: {
+    stdenvNoCC.mkDerivation (finalAttrs: {
       pname = cask.token;
-      version = variationData.version;
+      inherit version;
 
       src = pkgs.fetchurl {
-        url = variationData.url;
-        sha256 = lib.optionalString (variationData.sha256 != "no_check") variationData.sha256;
+        inherit url;
+        sha256 = lib.strings.optionalString (variationData.sha256 != "no_check") sha256;
       };
 
       nativeBuildInputs = with pkgs;
@@ -82,14 +83,14 @@
           _7zz
           makeWrapper
         ]
-        ++ lib.optional isPkg (
+        ++ lib.lists.optional isPkg (
           with pkgs; [
             xar
             cpio
+            fd
           ]
         );
 
-      # Unpack phase remains largely the same, but uses the flags based on variation artifacts
       unpackPhase =
         if isPkg
         then ''
@@ -100,35 +101,35 @@
         ''
         else if isApp
         then ''
-          undmg $src || 7zz x -snld $src
+          undmg $src || unzip $src || 7zz x -snld $src
         ''
         else if isBinary
         then ''
-          # Use artifacts from variationData to get the binary name
-          local binaryName="${getBinary artifacts}"
           if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
-            gunzip $src -c > "$binaryName"
+            gunzip $src -c > ${getBinary artifacts}
           elif [ "$(file --mime-type -b "$src")" == "application/x-mach-binary" ]; then
-            cp $src "$binaryName"
-          else
-            echo "Unknown binary type for $src"
-            exit 1
+            cp $src ${getBinary artifacts}
           fi
         ''
-        else ""; # Handle cases with no common artifacts
+        else "";
 
-      # Source root uses app name from variation data
-      sourceRoot = lib.optionalString isApp (getApp artifacts);
+      sourceRoot = lib.strings.optionalString isApp (getApp artifacts);
 
       # Patching shebangs invalidates code signing
       dontPatchShebangs = true;
 
-      # Install phase remains largely the same, using flags and names from variation artifacts
       installPhase =
         if isPkg
         then ''
-          mkdir -p $out/Applications
-          cp -R Applications/* $out/Applications/
+          if [ -d "Applications" ]; then
+            mkdir -p $out/Applications
+            cp -R Applications/* $out/Applications/
+          fi
+
+          if [ -n "$(fd -d 1 -t d '\.app$' .)" ]; then
+            mkdir -p $out/Applications
+            cp -R *.app $out/Applications/
+          fi
 
           if [ -d "Resources" ]; then
             mkdir -p $out/Resources
@@ -145,40 +146,23 @@
           mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
           cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
 
-          # Try both common naming conventions for the executable within the app bundle
-          local appBundlePath="$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS"
-          local mainExecutable=""
-
-          if [[ -e "$appBundlePath/${getName cask}" ]]; then
-            mainExecutable="$appBundlePath/${getName cask}"
-          elif [[ -e "$appBundlePath/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
-            mainExecutable="$appBundlePath/${lib.removeSuffix ".app" finalAttrs.sourceRoot}"
-          fi
-
-          if [[ -n "$mainExecutable" ]]; then
-            makeWrapper "$mainExecutable" $out/bin/${cask.token}
-          else
-            echo "Warning: Could not find main executable for ${cask.token} app at $appBundlePath" >&2
-            # Still create the wrapper just in case, it might work if the app is run differently
-            # or the executable path is determined dynamically by the app bundle itself.
-            makeWrapper "$appBundlePath/${getName cask}" $out/bin/${cask.token} || true
+          if [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
+            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
+          elif [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
+            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
           fi
         ''
         else if (isBinary && !isApp)
-        then
-          # For simple binaries, copy the binary to $out/bin
-          ''
-            mkdir -p $out/bin
-            # Use artifacts from variationData to get the binary name
-            cp "${getBinary artifacts}" $out/bin/
-          ''
-        else ""; # No install phase needed for unknown/unhandled types
+        then ''
+          mkdir -p $out/bin
+          cp -R ./* $out/bin/
+        ''
+        else "";
 
       meta = {
-        inherit (cask) homepage; # Homepage is usually not varied
-        description = cask.desc; # Description is usually not varied
+        inherit (cask) homepage;
+        description = cask.desc;
         platforms = lib.platforms.darwin;
-        # Main program depends on the selected artifact type from variation data
         mainProgram =
           if (isBinary && !isApp)
           then (getBinary artifacts)
@@ -187,29 +171,11 @@
     });
 
   casks = lib.importJSON (brew-api + "/cask.json");
-
-  # Filter out casks that don't seem to have standard artifact types we handle
-  # (binary, app, pkg) to avoid build failures for weird casks.
-  # Merge artifacts first to check if any standard types exist.
-  # You might want to adjust or remove this filter depending on how comprehensive
-  # you want this to be.
-  filteredCasks =
-    builtins.filter (
-      cask: let
-        variationData = getVariationData cask;
-        artifacts = lib.mergeAttrsList variationData.artifacts;
-      in
-        lib.hasAttr "binary" artifacts
-        || lib.hasAttr "app" artifacts
-        || lib.hasAttr "pkg" artifacts
-    )
-    casks;
 in
-  # Convert the list of filtered casks into an attribute set of derivations
-  lib.listToAttrs (
-    builtins.map (cask: {
+  lib.attrsets.listToAttrs (
+    lib.lists.map (cask: {
       name = cask.token;
       value = caskToDerivation cask;
     })
-    filteredCasks
+    casks
   )
