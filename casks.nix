@@ -3,64 +3,34 @@
   lib ? pkgs.lib,
   brew-api,
   stdenvNoCC ? pkgs.stdenvNoCC,
-  currentMacosName ? "sequoia",
   ...
 }: let
   getName = cask: lib.lists.elemAt cask.name 0;
   getBinary = artifacts: lib.lists.elemAt artifacts.binary 0;
   getApp = artifacts: lib.lists.elemAt artifacts.app 0;
 
-  getVariationData = cask: let
-    orderedMacosVersions = [
-      "sequoia"
-      "sonoma"
-      "ventura"
-      "monterey"
-      "big_sur"
-    ];
+  getVariationData = cask: variation:
+    if cask ? variations && lib.attrsets.hasAttr variation cask.variations
+    then cask.variations."${variation}"
+    else throw "Variation '${variation}' not found for ${cask.token}. Available: ${builtins.toString (lib.attrsets.attrNames (cask.variations or {}))}";
 
-    archPrefix =
-      if stdenvNoCC.hostPlatform.isAarch64
-      then "arm64_"
-      else ""; # x86_64 is the implicit default
+  caskToDerivation = cask: {variation ? null}: let
+    specificVariationData =
+      if variation != null
+      then getVariationData cask variation
+      else {};
 
-    variations =
-      if lib.attrsets.hasAttr "variations" cask && cask.variations != null && cask.variations != {}
-      then cask.variations
-      else null;
+    defaultCaskData = {
+      url = cask.url or null;
+      sha256 = cask.sha256 or null;
+      version = cask.version or null;
+      artifacts = cask.artifacts or [];
+    };
 
-    findBestVariation = osIndex:
-      if variations == null || osIndex >= lib.lists.length orderedMacosVersions
-      then {inherit (cask) url sha256 version artifacts;}
-      else let
-        osName = lib.lists.elemAt orderedMacosVersions osIndex;
-        archSpecificKey = "${archPrefix}${osName}";
-        osSpecificKey = osName;
-      in
-        if lib.attrsets.hasAttr archSpecificKey variations
-        then variations."${archSpecificKey}"
-        else if lib.attrsets.hasAttr osSpecificKey variations
-        then variations."${osSpecificKey}"
-        else findBestVariation (osIndex + 1);
+    selectedData = defaultCaskData // specificVariationData;
 
-    currentOsIndex = lib.lists.findFirstIndex (name: name == currentMacosName) null orderedMacosVersions;
-    bestVariationAttributes = findBestVariation (
-      if currentOsIndex != null
-      then currentOsIndex
-      else 0
-    );
-  in {
-    url = bestVariationAttributes.url or cask.url;
-    sha256 = bestVariationAttributes.sha256 or cask.sha256;
-    version = bestVariationAttributes.version or cask.version;
-    artifacts = bestVariationAttributes.artifacts or cask.artifacts;
-  };
-
-  caskToDerivation = cask: let
-    variationData = getVariationData cask;
-
-    inherit(variationData) url sha256 version;
-    artifacts = lib.attrsets.mergeAttrsList variationData.artifacts;
+    inherit (selectedData) url sha256 version;
+    artifacts = lib.attrsets.mergeAttrsList selectedData.artifacts;
 
     isBinary = lib.attrsets.hasAttr "binary" artifacts;
     isApp = lib.attrsets.hasAttr "app" artifacts;
@@ -72,7 +42,7 @@
 
       src = pkgs.fetchurl {
         inherit url;
-        sha256 = lib.strings.optionalString (variationData.sha256 != "no_check") sha256;
+        sha256 = lib.strings.optionalString (sha256 != null && sha256 != "no_check") sha256;
       };
 
       nativeBuildInputs = with pkgs;
@@ -170,12 +140,12 @@
       };
     });
 
-  casks = lib.importJSON (brew-api + "/cask.json");
+  casks = lib.trivial.importJSON (brew-api + "/cask.json");
 in
   lib.attrsets.listToAttrs (
     lib.lists.map (cask: {
       name = cask.token;
-      value = caskToDerivation cask;
+      value = lib.customisation.makeOverridable (caskToDerivation cask) {};
     })
     casks
   )
