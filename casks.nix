@@ -2,33 +2,50 @@
   pkgs,
   lib ? pkgs.lib,
   brew-api,
-  stdenv ? pkgs.stdenv,
+  stdenvNoCC ? pkgs.stdenvNoCC,
   ...
-}:
-let
-  getName = cask: builtins.elemAt cask.name 0;
-  getBinary = artifacts: builtins.elemAt artifacts.binary 0;
-  getApp = artifacts: builtins.elemAt artifacts.app 0;
+}: let
+  getName = cask: lib.lists.elemAt cask.name 0;
+  getBinary = artifacts: lib.lists.elemAt artifacts.binary 0;
+  getApp = artifacts: lib.lists.elemAt artifacts.app 0;
 
-  caskToDerivation =
-    cask:
-    let
-      artifacts = lib.mergeAttrsList cask.artifacts;
-      isBinary = lib.hasAttr "binary" artifacts;
-      isApp = lib.hasAttr "app" artifacts;
-      isPkg = lib.hasAttr "pkg" artifacts;
-    in
-    stdenv.mkDerivation (finalAttrs: {
+  getVariationData = cask: variation:
+    if cask ? variations && lib.attrsets.hasAttr variation cask.variations
+    then cask.variations."${variation}"
+    else throw "Variation '${variation}' not found for ${cask.token}. Available: ${builtins.toString (lib.attrsets.attrNames (cask.variations or {}))}";
+
+  caskToDerivation = cask: {variation ? null}: let
+    specificVariationData =
+      if variation != null
+      then getVariationData cask variation
+      else {};
+
+    defaultCaskData = {
+      url = cask.url or null;
+      sha256 = cask.sha256 or null;
+      version = cask.version or null;
+      artifacts = cask.artifacts or [];
+    };
+
+    selectedData = defaultCaskData // specificVariationData;
+
+    inherit (selectedData) url sha256 version;
+    artifacts = lib.attrsets.mergeAttrsList selectedData.artifacts;
+
+    isBinary = lib.attrsets.hasAttr "binary" artifacts;
+    isApp = lib.attrsets.hasAttr "app" artifacts;
+    isPkg = lib.attrsets.hasAttr "pkg" artifacts;
+  in
+    stdenvNoCC.mkDerivation (finalAttrs: {
       pname = cask.token;
-      inherit (cask) version;
+      inherit version;
 
       src = pkgs.fetchurl {
-        inherit (cask) url;
-        sha256 = lib.optionalString (cask.sha256 != "no_check") cask.sha256;
+        inherit url;
+        sha256 = lib.strings.optionalString (sha256 != null && sha256 != "no_check") sha256;
       };
 
-      nativeBuildInputs =
-        with pkgs;
+      nativeBuildInputs = with pkgs;
         [
           undmg
           unzip
@@ -36,90 +53,99 @@ let
           _7zz
           makeWrapper
         ]
-        ++ lib.optional isPkg (
-          with pkgs;
-          [
+        ++ lib.lists.optional isPkg (
+          with pkgs; [
             xar
             cpio
+            fd
           ]
         );
 
       unpackPhase =
-        if isPkg then
-          ''
-            xar -xf $src
-            for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
-              zcat $pkg | cpio -i
-            done
-          ''
-        else if isApp then
-          ''
-            undmg $src || 7zz x -snld $src
-          ''
-        else if isBinary then
-          ''
-            if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
-              gunzip $src -c > ${getBinary artifacts}
-            elif [ "$(file --mime-type -b "$src")" == "application/x-mach-binary" ]; then
-              cp $src ${getBinary artifacts}
-            fi
-          ''
-        else
-          "";
+        if isPkg
+        then ''
+          xar -xf $src
+          for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
+            zcat $pkg | cpio -i
+          done
+        ''
+        else if isApp
+        then ''
+          undmg $src || unzip $src || 7zz x -snld $src
+        ''
+        else if isBinary
+        then ''
+          if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
+            gunzip $src -c > ${getBinary artifacts}
+          elif [ "$(file --mime-type -b "$src")" == "application/x-mach-binary" ]; then
+            cp $src ${getBinary artifacts}
+          fi
+        ''
+        else "";
 
-      sourceRoot = lib.optionalString isApp (getApp artifacts);
+      sourceRoot = lib.strings.optionalString isApp (getApp artifacts);
 
       # Patching shebangs invalidates code signing
       dontPatchShebangs = true;
 
       installPhase =
-        if isPkg then
-          ''
+        if isPkg
+        then ''
+          if [ -d "Applications" ]; then
             mkdir -p $out/Applications
             cp -R Applications/* $out/Applications/
+          fi
 
-            if [ -d "Resources" ]; then
-              mkdir -p $out/Resources
-              cp -R Resources/* $out/Resources/
-            fi
+          if [ -n "$(fd -d 1 -t d '\.app$' .)" ]; then
+            mkdir -p $out/Applications
+            cp -R *.app $out/Applications/
+          fi
 
-            if [ -d "Library" ]; then
-              mkdir -p $out/Library
-              cp -R Library/* $out/Library/
-            fi
-          ''
-        else if isApp then
-          ''
-            mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
-            cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
+          if [ -d "Resources" ]; then
+            mkdir -p $out/Resources
+            cp -R Resources/* $out/Resources/
+          fi
 
-            if [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
-              makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
-            elif [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
-              makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
-            fi
-          ''
-        else if (isBinary && !isApp) then
-          ''
-            mkdir -p $out/bin
-            cp -R ./* $out/bin
-          ''
-        else
-          "";
+          if [ -d "Library" ]; then
+            mkdir -p $out/Library
+            cp -R Library/* $out/Library/
+          fi
+        ''
+        else if isApp
+        then ''
+          mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
+          cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
+
+          if [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
+            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
+          elif [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
+            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
+          fi
+        ''
+        else if (isBinary && !isApp)
+        then ''
+          mkdir -p $out/bin
+          cp -R ./* $out/bin/
+        ''
+        else "";
 
       meta = {
         inherit (cask) homepage;
         description = cask.desc;
         platforms = lib.platforms.darwin;
-        mainProgram = if (isBinary && !isApp) then (getBinary artifacts) else cask.token;
+        mainProgram =
+          if (isBinary && !isApp)
+          then (getBinary artifacts)
+          else cask.token;
       };
     });
 
-  casks = lib.importJSON (brew-api + "/cask.json");
+  casks = lib.trivial.importJSON (brew-api + "/cask.json");
 in
-lib.listToAttrs (
-  builtins.map (cask: {
-    name = cask.token;
-    value = caskToDerivation cask;
-  }) casks
-)
+  lib.attrsets.listToAttrs (
+    lib.lists.map (cask: {
+      name = cask.token;
+      value = lib.customisation.makeOverridable (caskToDerivation cask) {};
+    })
+    casks
+  )
