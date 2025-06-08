@@ -1,47 +1,86 @@
 # brew-nix
 
-Experimental nix expression to package all MacOS casks from [homebrew](https://brew.sh/) automatically.
+An experimental nix expression as a nixpkgs overlay to package all macOS [Homebrew Casks](https://brew.sh/) automatically.
 
 ## Benefits over nix-darwin's homebrew module
-1. No homebrew needed, packages are fully managed by nix.
-2. Fully nix package expressions, everything is type checked and it will give you an error when you specify an invalid package for example.
 
-## Limitations/flaws
-1. Running most programs with ``nix run`` wont work, so you should install them first.
-2. Some programs refuse to run from non standard locations, since this is automatic there isnt a good way to fix it.
-3. About 700 casks dont come with hashes, so you have to [override the package and provide the hash yourself](https://github.com/BatteredBunny/brew-nix?tab=readme-ov-file#overriding-casks-with-no-hash).
-4. Having multiple generations of this will take A LOT of space, so keep that in mind
+1. No homebrew installation needed; packages are fully managed by nix.
+2. Pure nix, package derivations; everything is type checked and it will give you an error when you specify an invalid package for example.
+
+## Limitations/Flaws
+
+1. Running most programs with `nix run` won't work, you'll have to build them first.
+2. Some programs refuse to run from non-standard locations, since this is automatic there isn't a good way to fix it.
+3. There're about 700 casks without hashes, so you have to [override the derivation attributes & provide a hash explicitly](#overriding-casks-derivation-attributes-for-casks-with-no-hash).
+4. Having several generations with this will take A LOT of disk space, so keep that in mind.
 
 ## Related projects
+
 - [mac-app-util](https://github.com/hraban/mac-app-util)
 - [nixcasks](https://github.com/jcszymansk/nixcasks)
 
 # Usage examples
 
 ## Basic usage
+
 ```bash
 nix build github:BatteredBunny/brew-nix#blender
 ./result/Applications/Blender.app/Contents/MacOS/Blender
 ```
 
-## Overriding casks with no hash
-Many casks come with no hash so you have to provide one yourself
+or declaratively
+
+```nix
+home.packages = [ pkgs.brewCasks.visual-studio-code ];
+```
+
+## Overriding cask's derivation attributes for casks with no hash
+
+Many casks do not come with their hash so you'll have to provide one explicitly.
+
 ```nix
 home.packages = with pkgs; [
   (brewCasks.marta.overrideAttrs (oldAttrs: {
     src = pkgs.fetchurl {
       url = builtins.head oldAttrs.src.urls;
-      hash = lib.fakeHash; # Replace me with real hash after building once
+      hash = lib.fakeHash; # Replace with actual hash after building once
     };
   }))
 ];
 ```
 
-## Using with nix-darwin
+## Overriding cask's variation
+
+Explicitly choose homebrew cask variations (Quite a few casks have variations for different architectures or macOS versions).
+You can look up each cask's respective variations at [brew.sh](https://brew.sh/).
+
+```nix
+home.packages = lib.attrsets.attrValues {
+  vscode = (pkgs.brewCasks.visual-studio-code.override {variation = "sequoia";});
+};
+```
+
+## Overriding both cask's variation & derivation attributes
+
+```nix
+home.packages = lib.attrsets.attrValues {
+  vscode = (pkgs.brewCasks.visual-studio-code.override {variation = "sequoia";}).overrideAttrs (oldAttrs: {
+    src = pkgs.fetchurl {
+      url = lib.lists.head oldAttrs.src.urls;
+      hash = lib.fakeHash; # Replace with actual hash after building once
+    };
+  });
+};
+```
+
+# Setup
+
+## Setup with nix-darwin
 
 See [`examples/flake.nix`](examples/flake.nix).
 
-## Using with home-manager
+## Setup with home-manager
+
 ```nix
 # flake.nix
 inputs = {
@@ -55,6 +94,7 @@ inputs = {
   };
 };
 ```
+
 ```nix
 # home.nix
 nixpkgs = {
