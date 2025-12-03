@@ -46,7 +46,7 @@
       );
 
       overlays.default = final: _: {
-        brewCasks = self.packages.${final.system};
+        brewCasks = self.packages.${final.stdenv.hostPlatform.system};
       };
 
       darwinModules.default = lib.modules.importApply ./module.nix { brewCasks = self.overlays.default; };
