@@ -81,6 +81,8 @@ See [`examples/flake.nix`](examples/flake.nix).
 
 ## Setup with home-manager
 
+**Note**: It’s important to set up the `brew-api` input because that’s where the Homebrew formulae are stored. It gets updated much more frequently than `brew-nix`, so if you only have the `brew-nix` input, you’ll have out-of-date versions of programs installed and potential Nix eval failures if those old versions are no longer available from their source.
+
 ```nix
 # flake.nix
 inputs = {
