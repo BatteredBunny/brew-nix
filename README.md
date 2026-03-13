@@ -75,6 +75,17 @@ home.packages = lib.attrsets.attrValues {
 
 # Setup
 
+`brew-nix` is structured into 2 repos for modularity:
+- The main repo `brew-nix` containg the nix expression to parse cask data to nix packages.
+- Automated [`brew-api`](https://github.com/BatteredBunny/brew-api) repo containing the brew casks summary information.
+
+This has the benefit of being able to keep the git history of `brew-nix` clean, and giving the user the freedom to easily override the data used to generate the nix expressions and or update `brew-api` seperatly from `brew-nix` if needed.
+
+> [!WARNING]
+> `brew-api` input part is not optional. You should define your own `brew-api` input like below.
+>
+> If you omit it, `brew-nix` will use a stale version of `brew-api` which is updated infrequently and may not work.
+
 ## Setup with nix-darwin
 
 See [`examples/flake.nix`](examples/flake.nix).
