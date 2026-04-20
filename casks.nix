@@ -12,7 +12,7 @@
   getVariationData = cask: variation:
     if cask ? variations && lib.attrsets.hasAttr variation cask.variations
     then cask.variations."${variation}"
-    else throw "Variation '${variation}' not found for ${cask.token}. Available: ${builtins.toString (lib.attrsets.attrNames (cask.variations or {}))}";
+    else throw "Variation '${variation}' not found for ${cask.token}. Available: ${toString (lib.attrsets.attrNames (cask.variations or {}))}";
 
   caskToDerivation = cask: {variation ? null}: let
     specificVariationData =
