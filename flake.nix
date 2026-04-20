@@ -57,7 +57,7 @@
       checks = forAllSystems (
         pkgs:
         let
-          inherit (nix-darwin.packages.${pkgs.stdenv.hostPlatorm}) darwin-rebuild;
+          inherit (nix-darwin.packages.${pkgs.stdenv.hostPlatform}) darwin-rebuild;
         in
         {
           build-examples = pkgs.runCommandLocal "build-examples" { } ''
