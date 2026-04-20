@@ -12,22 +12,25 @@ Kind = Literal["app", "pkg", "binary"]
 BuildResult = tuple[Kind, str, float, str | None]
 
 CASKS: list[tuple[Kind, str]] = [
-    ("app", "1kc-razer"),
-    ("app", "86box"),
-    ("app", "1password@7"),
-    ("app", "rectangle"),
-    ("app", "appcleaner"),
-    ("app", "alfred"),
-    ("app", "ammonite"),
-    ("app", "fauxpas"),
-    ("pkg", "alfaview"),
-    ("pkg", "aquaskk"),
-    ("pkg", "sage"),
-    ("binary", "7777"),
-    ("binary", "ngrok"),
-    ("binary", "fly"),
-    ("binary", "rar"),
-    ("binary", "matterhorn"),
+    ("app", "1kc-razer"),  # multi-partition HFS dmg, digit-start token
+    ("app", "86box"),  # zip, digit-start token
+    ("app", "1password@7"),  # zip, @-versioned token
+    ("app", "rectangle"),  # HFS dmg wrapped in a volume-name folder
+    ("app", "appcleaner"),  # zip
+    ("app", "alfred"),  # tar.gz
+    ("app", "ammonite"),  # tar.xz
+    ("app", "fauxpas"),  # tar.bz2
+    ("app", "kitty"),  # APFS dmg
+    ("app", "sabaki"),  # 7z
+    ("pkg", "alfaview"),  # flat pkg
+    ("pkg", "aquaskk"),  # flat pkg
+    ("pkg", "sage"),  # dmg with both .app and .pkg
+    ("binary", "7777"),  # bare Mach-O (no archive extension)
+    ("binary", "ngrok"),  # binary inside zip
+    ("binary", "fly"),  # binary inside .tgz
+    ("binary", "rar"),  # binary inside tar.gz
+    ("binary", "matterhorn"),  # binary inside tar.bz2
+    ("binary", "aws-vault-binary"),  # binary inside dmg
 ]
 MAX_PARALLEL = int(os.environ.get("TEST_JOBS", "4"))
 

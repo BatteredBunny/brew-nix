@@ -95,7 +95,15 @@
         then ''
           case "$src" in
             *.dmg)
-              undmg "$src"
+              # Try undmg first, then 7zz if it doesn't work
+              # 7zz has weird issues with decompressing many times
+              if ! undmg "$src" 2>/dev/null; then
+                7zz x -snld "$src"
+                if [ ! -e "${getApp artifacts}" ]; then
+                  nested=$(find . -mindepth 2 -maxdepth 3 -name "${getApp artifacts}" -print -quit)
+                  [ -n "$nested" ] && mv "$nested" .
+                fi
+              fi
               # dmgs often ship with a symlink to /Applications, drop it
               find . -maxdepth 1 -type l -delete
               ;;
