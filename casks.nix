@@ -101,11 +101,6 @@
             cp -R *.app $out/Applications/
           fi
 
-          if [ -d "Resources" ]; then
-            mkdir -p $out/Resources
-            cp -R Resources/* $out/Resources/
-          fi
-
           if [ -d "Library" ]; then
             mkdir -p $out/Library
             cp -R Library/* $out/Library/
