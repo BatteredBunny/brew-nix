@@ -194,7 +194,7 @@
         platforms = lib.platforms.darwin;
         mainProgram =
           if (isBinary && !isApp)
-          then (getBinary artifacts)
+          then baseNameOf (getBinary artifacts)
           else cask.token;
       };
     });
