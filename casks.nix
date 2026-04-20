@@ -71,7 +71,14 @@
         ''
         else if isApp
         then ''
-          undmg $src || unzip $src || 7zz x -snld $src
+          case "$src" in
+            *.dmg)            undmg "$src" ;;
+            *.zip)            unzip "$src" ;;
+            *.tar.gz|*.tgz)   tar -xzf "$src" ;;
+            *.tar.xz)         tar -xJf "$src" ;;
+            *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
+            *)                7zz x -snld "$src" ;;
+          esac
         ''
         else if isBinary
         then ''
