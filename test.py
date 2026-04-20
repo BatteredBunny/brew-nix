@@ -97,6 +97,34 @@ def build(kind: Kind, cask: str) -> BuildResult:
         return kind, cask, duration, str(e)
 
 
+def check_run(kind: Kind, cask: str) -> tuple[Kind, str, str | None]:
+    proc = subprocess.run(
+        ["nix", "build", f".#{cask}", "--no-link", "--print-out-paths"],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return kind, cask, proc.stderr.strip()
+    store = Path(proc.stdout.strip().splitlines()[-1])
+    proc = subprocess.run(
+        ["nix", "eval", "--raw", f".#{cask}.meta.mainProgram"],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return kind, cask, proc.stderr.strip()
+    main_program = proc.stdout.strip()
+    if kind == "pkg" and not (store / "bin").is_dir():
+        return kind, cask, None
+    entry = store / "bin" / main_program
+    try:
+        assert entry.is_file(), f"bin/{main_program} missing"
+        assert os.access(entry, os.X_OK), f"bin/{main_program} not executable"
+        return kind, cask, None
+    except AssertionError as e:
+        return kind, cask, str(e)
+
+
 def check_variation(
     cask: str, system: str, needle: str, want: bool
 ) -> tuple[str, str | None]:
@@ -151,10 +179,29 @@ def run_builds() -> int:
     return passed
 
 
+def run_runs() -> int:
+    print(
+        f"\nverifying mainProgram for {len(CASKS)} casks, {MAX_PARALLEL} at once\n",
+        flush=True,
+    )
+    passed = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+        futures = [pool.submit(check_run, kind, cask) for kind, cask in CASKS]
+        for future in concurrent.futures.as_completed(futures):
+            kind, cask, error = future.result()
+            status = "FAIL" if error else "PASS"
+            line = f"[{status}] {kind} {cask} mainProgram"
+            if error:
+                line += f"\n  {error}"
+            print(line, flush=True)
+            passed += not error
+    return passed
+
+
 def main() -> int:
     os.chdir(Path(__file__).resolve().parent)
-    passed = run_variations() + run_builds()
-    total = len(VARIATIONS) + len(CASKS)
+    passed = run_variations() + run_builds() + run_runs()
+    total = len(VARIATIONS) + len(CASKS) * 2
     print(f"\nPassed: {passed}/{total}")
     return 0 if passed == total else 1
 
