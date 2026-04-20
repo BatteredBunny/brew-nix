@@ -53,7 +53,7 @@ home.packages = with pkgs; [
 
 ## Overriding cask's variation
 
-Explicitly choose homebrew cask variations (Quite a few casks have variations for different architectures or macOS versions).
+On x86_64, brew-nix tries to automatically choose the newest intel macOS variant available, that may not be correct though, in those cases it maybe be needed to manually override the cask variant chosen.
 You can look up each cask's respective variations at [brew.sh](https://brew.sh/).
 
 ```nix

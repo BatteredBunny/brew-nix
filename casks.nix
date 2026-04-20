@@ -14,6 +14,25 @@
     then cask.variations."${variation}"
     else throw "Variation '${variation}' not found for ${cask.token}. Available: ${toString (lib.attrsets.attrNames (cask.variations or {}))}";
 
+  # The url key is usually the binary for arm64, for intel we need to select the url from variants
+  intelMacosPreference = [
+    "tahoe"
+    "sequoia"
+    "sonoma"
+    "ventura"
+    "monterey"
+    "big_sur"
+    "catalina"
+  ];
+
+  defaultVariationFor =
+    if pkgs.stdenv.hostPlatform.isx86_64
+    then cask:
+      if cask ? variations
+      then lib.lists.findFirst (name: cask.variations ? ${name}) null intelMacosPreference
+      else null
+    else _: null;
+
   caskToDerivation = cask: {variation ? null}: let
     specificVariationData =
       if variation != null
@@ -159,7 +178,9 @@ in
   lib.attrsets.listToAttrs (
     lib.lists.map (cask: {
       name = cask.token;
-      value = lib.customisation.makeOverridable (caskToDerivation cask) {};
+      value = lib.customisation.makeOverridable (caskToDerivation cask) {
+        variation = defaultVariationFor cask;
+      };
     })
     casks
   )

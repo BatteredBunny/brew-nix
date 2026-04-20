@@ -30,6 +30,18 @@ CASKS: list[tuple[Kind, str]] = [
 ]
 MAX_PARALLEL = int(os.environ.get("TEST_JOBS", "4"))
 
+VARIATIONS: list[tuple[str, str, str, bool]] = [
+    ("vlc", "x86_64-darwin", "arm64", False),
+    ("vlc", "x86_64-darwin", "intel64", True),
+    ("vlc", "aarch64-darwin", "arm64", True),
+    ("audacity", "x86_64-darwin", "x86_64", True),
+    ("audacity", "aarch64-darwin", "arm64", True),
+    ("gimp", "x86_64-darwin", "x86_64", True),
+    ("gimp", "aarch64-darwin", "arm64", True),
+    ("visual-studio-code", "x86_64-darwin", "darwin-arm64", False),
+    ("visual-studio-code", "aarch64-darwin", "darwin-arm64", True),
+]
+
 
 def is_mach_o(path: Path) -> bool:
     mime = subprocess.check_output(
@@ -81,10 +93,46 @@ def build(kind: Kind, cask: str) -> BuildResult:
         return kind, cask, duration, str(e)
 
 
-def main() -> int:
-    os.chdir(Path(__file__).resolve().parent)
-    print(f"building {len(CASKS)} casks, {MAX_PARALLEL} at once\n", flush=True)
+def check_variation(
+    cask: str, system: str, needle: str, want: bool
+) -> tuple[str, str | None]:
+    label = f"{cask} {system} url {'has' if want else 'lacks'} {needle!r}"
+    proc = subprocess.run(
+        ["nix", "eval", "--raw", f".#packages.{system}.{cask}.src.url"],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return label, proc.stderr.strip()
+    url = proc.stdout.strip()
+    if (needle in url) != want:
+        return label, f"got {url}"
+    return label, None
 
+
+def run_variations() -> int:
+    print(
+        f"checking {len(VARIATIONS)} url variations, {MAX_PARALLEL} at once", flush=True
+    )
+    passed = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
+        futures = [
+            pool.submit(check_variation, cask, system, needle, want)
+            for cask, system, needle, want in VARIATIONS
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            label, error = future.result()
+            status = "FAIL" if error else "PASS"
+            line = f"[{status}] {label}"
+            if error:
+                line += f"\n  {error}"
+            print(line, flush=True)
+            passed += not error
+    return passed
+
+
+def run_builds() -> int:
+    print(f"\nbuilding {len(CASKS)} casks, {MAX_PARALLEL} at once\n", flush=True)
     passed = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL) as pool:
         futures = [pool.submit(build, kind, cask) for kind, cask in CASKS]
@@ -96,9 +144,15 @@ def main() -> int:
                 line += f"\n  {error}"
             print(line, flush=True)
             passed += not error
+    return passed
 
-    print(f"\nPassed: {passed}/{len(CASKS)}")
-    return 0 if passed == len(CASKS) else 1
+
+def main() -> int:
+    os.chdir(Path(__file__).resolve().parent)
+    passed = run_variations() + run_builds()
+    total = len(VARIATIONS) + len(CASKS)
+    print(f"\nPassed: {passed}/{total}")
+    return 0 if passed == total else 1
 
 
 if __name__ == "__main__":
