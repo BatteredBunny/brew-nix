@@ -82,11 +82,23 @@
         ''
         else if isBinary
         then ''
-          if [ "$(file --mime-type -b "$src")" == "application/gzip" ]; then
-            gunzip $src -c > ${getBinary artifacts}
-          elif [ "$(file --mime-type -b "$src")" == "application/x-mach-binary" ]; then
-            cp $src ${getBinary artifacts}
-          fi
+          case "$src" in
+            *.zip)            unzip "$src" ;;
+            *.tar.gz|*.tgz)   tar -xzf "$src" ;;
+            *.tar.xz)         tar -xJf "$src" ;;
+            *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
+            *.tar)            tar -xf "$src" ;;
+            *)
+              mime="$(file --mime-type -b "$src")"
+              if [ "$mime" == "application/gzip" ]; then
+                gunzip $src -c > ${getBinary artifacts}
+              elif [ "$mime" == "application/x-mach-binary" ]; then
+                cp $src ${getBinary artifacts}
+              else
+                7zz x -snld "$src"
+              fi
+              ;;
+          esac
         ''
         else "";
 

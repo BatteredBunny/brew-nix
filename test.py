@@ -24,6 +24,9 @@ CASKS: list[tuple[Kind, str]] = [
     ("pkg", "aquaskk"),
     ("binary", "7777"),
     ("binary", "ngrok"),
+    ("binary", "fly"),
+    ("binary", "rar"),
+    ("binary", "matterhorn"),
 ]
 MAX_PARALLEL = int(os.environ.get("TEST_JOBS", "4"))
 
