@@ -127,7 +127,7 @@
         else if (isBinary && !isApp)
         then ''
           mkdir -p $out/bin
-          cp -R ./* $out/bin/
+          install -m755 ${getBinary artifacts} $out/bin/
         ''
         else "";
 
