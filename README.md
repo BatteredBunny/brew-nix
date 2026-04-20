@@ -1,5 +1,7 @@
 # brew-nix
 
+[![test](https://github.com/BatteredBunny/brew-nix/actions/workflows/test.yml/badge.svg)](https://github.com/BatteredBunny/brew-nix/actions/workflows/test.yml)
+
 An experimental nix expression as a nixpkgs overlay to package all macOS [Homebrew Casks](https://brew.sh/) automatically.
 
 ## Benefits over nix-darwin's homebrew module
