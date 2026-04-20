@@ -54,6 +54,9 @@
     isBinary = lib.attrsets.hasAttr "binary" artifacts;
     isApp = lib.attrsets.hasAttr "app" artifacts;
     isPkg = lib.attrsets.hasAttr "pkg" artifacts;
+
+    # Prefer .app to .pkg when both are included in the dmg since using .app doesn't break the code signature
+    usePkgPath = isPkg && !(isApp && url != null && lib.strings.hasSuffix ".dmg" url);
   in
     stdenvNoCC.mkDerivation (finalAttrs: {
       pname = cask.token;
@@ -72,7 +75,7 @@
           _7zz
           makeWrapper
         ]
-        ++ lib.lists.optional isPkg (
+        ++ lib.lists.optional usePkgPath (
           with pkgs; [
             xar
             cpio
@@ -81,7 +84,7 @@
         );
 
       unpackPhase =
-        if isPkg
+        if usePkgPath
         then ''
           xar -xf $src
           for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
@@ -91,7 +94,11 @@
         else if isApp
         then ''
           case "$src" in
-            *.dmg)            undmg "$src" ;;
+            *.dmg)
+              undmg "$src"
+              # dmgs often ship with a symlink to /Applications, drop it
+              find . -maxdepth 1 -type l -delete
+              ;;
             *.zip)            unzip "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
@@ -121,13 +128,16 @@
         ''
         else "";
 
-      sourceRoot = lib.strings.optionalString isApp (getApp artifacts);
+      sourceRoot = lib.strings.optionalString (isApp && !usePkgPath) (getApp artifacts);
 
-      # Patching shebangs invalidates code signing
+      # Patching the artifacts invalidates code signing
       dontPatchShebangs = true;
+      dontUpdateAutotoolsGnuConfigScripts = true;
+      dontStrip = true;
+      dontPruneLibtoolFiles = true;
 
       installPhase =
-        if isPkg
+        if usePkgPath
         then ''
           if [ -d "Applications" ]; then
             mkdir -p $out/Applications
@@ -146,13 +156,21 @@
         ''
         else if isApp
         then ''
-          mkdir -p "$out/Applications/${finalAttrs.sourceRoot}"
-          cp -R . "$out/Applications/${finalAttrs.sourceRoot}"
+          app_dir="$out/Applications/${finalAttrs.sourceRoot}"
+          mkdir -p "$app_dir"
+          cp -R . "$app_dir"
 
-          if [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" ]]; then
-            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${getName cask}" $out/bin/${cask.token}
-          elif [[ -e "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" ]]; then
-            makeWrapper "$out/Applications/${finalAttrs.sourceRoot}/Contents/MacOS/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" $out/bin/${cask.token}
+          macos="$app_dir/Contents/MacOS"
+          exe=""
+          if [ -e "$macos/${getName cask}" ]; then
+            exe="${getName cask}"
+          elif [ -e "$macos/${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}" ]; then
+            exe="${lib.strings.removeSuffix ".app" finalAttrs.sourceRoot}"
+          elif [ -f "$app_dir/Contents/Info.plist" ]; then
+            exe=$(sed -n '/<key>CFBundleExecutable<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' "$app_dir/Contents/Info.plist")
+          fi
+          if [ -n "$exe" ] && [ -e "$macos/$exe" ]; then
+            makeWrapper "$macos/$exe" "$out/bin/${cask.token}"
           fi
         ''
         else if (isBinary && !isApp)

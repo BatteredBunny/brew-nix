@@ -13,15 +13,16 @@ BuildResult = tuple[Kind, str, float, str | None]
 
 CASKS: list[tuple[Kind, str]] = [
     ("app", "1kc-razer"),
-    ("app", "0-ad"),
     ("app", "86box"),
     ("app", "1password@7"),
-    ("app", "affinity"),
+    ("app", "rectangle"),
+    ("app", "appcleaner"),
     ("app", "alfred"),
     ("app", "ammonite"),
     ("app", "fauxpas"),
     ("pkg", "alfaview"),
     ("pkg", "aquaskk"),
+    ("pkg", "sage"),
     ("binary", "7777"),
     ("binary", "ngrok"),
     ("binary", "fly"),
