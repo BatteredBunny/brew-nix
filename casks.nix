@@ -94,24 +94,25 @@
         else if isApp
         then ''
           case "$src" in
-            *.dmg)
-              # Try undmg first, then 7zz if it doesn't work
-              # 7zz has weird issues with decompressing many times
-              if ! undmg "$src" 2>/dev/null; then
-                7zz x -snld "$src"
-                if [ ! -e "${getApp artifacts}" ]; then
-                  nested=$(find . -mindepth 2 -maxdepth 3 -name "${getApp artifacts}" -print -quit)
-                  [ -n "$nested" ] && mv "$nested" .
-                fi
-              fi
-              # dmgs often ship with a symlink to /Applications, drop it
-              find . -maxdepth 1 -type l -delete
-              ;;
             *.zip)            unzip "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
-            *)                7zz x -snld "$src" ;;
+            *)
+              # Try undmg first, then 7zz if it doesn't work
+              # 7zz has weird issues with decompressing many times but supports more formats
+              cp -- "$src" ./archive
+              if ! undmg ./archive 2>/dev/null; then
+                7zz x -snld ./archive
+              fi
+              rm -f ./archive
+              if [ ! -e "${getApp artifacts}" ]; then
+                nested=$(find . -mindepth 2 -maxdepth 3 -name "${getApp artifacts}" -print -quit)
+                [ -n "$nested" ] && mv "$nested" .
+              fi
+              # Often comes with symlink to /Applications which we dont want
+              find . -maxdepth 1 -type l -delete
+              ;;
           esac
         ''
         else if isBinary

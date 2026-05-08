@@ -22,6 +22,7 @@ CASKS: list[tuple[Kind, str]] = [
     ("app", "fauxpas"),  # tar.bz2
     ("app", "kitty"),  # APFS dmg
     ("app", "sabaki"),  # 7z
+    ("app", "raycast"),  # dmg fetched from URL with no archive extension
     ("pkg", "alfaview"),  # flat pkg
     ("pkg", "aquaskk"),  # flat pkg
     ("pkg", "sage"),  # dmg with both .app and .pkg
