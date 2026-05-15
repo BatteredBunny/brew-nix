@@ -104,6 +104,7 @@
               cp -- "$src" ./archive
               if ! undmg ./archive 2>/dev/null; then
                 7zz x -snld ./archive
+                find . -name '*:com.apple.*' -print -delete
               fi
               rm -f ./archive
               if [ ! -e "${getApp artifacts}" ]; then
