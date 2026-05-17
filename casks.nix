@@ -98,17 +98,25 @@
         else if isApp
         then ''
           case "$src" in
-            *.zip)            unzip "$src" ;;
+            *.zip)            unzip -q "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
             *)
-              # Try undmg first, then 7zz if it doesn't work
-              # 7zz has weird issues with decompressing many times but supports more formats
+              # Try undmg first, then dispatch by detected mime type
+              # 7zz 26+ rejects "dangerous link via another link" patterns that are
+              # legitimate in macOS .app bundles (e.g. Versions/Current chains in
+              # nested frameworks). Prefer unzip for zip-format archives since it
+              # tolerates these links; fall back to 7zz for other archive formats.
               cp -- "$src" ./archive
               if ! undmg ./archive 2>/dev/null; then
-                7zz x -snld ./archive
-                find . -name '*:com.apple.*' -print -delete
+                mime="$(file --mime-type -b ./archive)"
+                if [ "$mime" = "application/zip" ]; then
+                  unzip -q ./archive
+                else
+                  7zz x -snld ./archive
+                  find . -name '*:com.apple.*' -print -delete
+                fi
               fi
               rm -f ./archive
               if [ ! -e "${getApp artifacts}" ]; then
@@ -123,7 +131,7 @@
         else if isBinary
         then ''
           case "$src" in
-            *.zip)            unzip "$src" ;;
+            *.zip)            unzip -q "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
@@ -134,6 +142,8 @@
                 gunzip $src -c > ${getBinary artifacts}
               elif [ "$mime" == "application/x-mach-binary" ]; then
                 cp $src ${getBinary artifacts}
+              elif [ "$mime" == "application/zip" ]; then
+                unzip -q "$src"
               else
                 7zz x -snld "$src"
               fi
