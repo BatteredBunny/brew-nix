@@ -75,7 +75,7 @@
           _7zz
           makeWrapper
         ]
-        ++ lib.lists.optional usePkgPath (
+        ++ lib.lists.optionals usePkgPath (
           with pkgs; [
             xar
             cpio
