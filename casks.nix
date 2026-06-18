@@ -80,6 +80,7 @@
             xar
             cpio
             fd
+            pbzx
           ]
         );
 
@@ -88,7 +89,11 @@
         then ''
           xar -xf $src
           for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
-            zcat $pkg | cpio -i
+            if head -c 4 "$pkg" | grep -q "pbzx"; then
+              pbzx -n "$pkg" | cpio -i
+            else
+              zcat "$pkg" | cpio -i
+            fi
           done
         ''
         else if isApp
@@ -162,6 +167,16 @@
           if [ -d "Library" ]; then
             mkdir -p $out/Library
             cp -R Library/* $out/Library/
+          fi
+
+          if [ -d "Contents" ] && [ -f "Contents/Info.plist" ]; then
+            bundleName=$(sed -n '/<key>CFBundleName<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' Contents/Info.plist 2>/dev/null || echo "App")
+            mkdir -p "$out/Applications/$bundleName.app"
+            cp -R Contents "$out/Applications/$bundleName.app/"
+            exe=$(sed -n '/<key>CFBundleExecutable<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}' Contents/Info.plist 2>/dev/null)
+            if [ -n "$exe" ] && [ -f "$out/Applications/$bundleName.app/Contents/MacOS/$exe" ]; then
+              makeWrapper "$out/Applications/$bundleName.app/Contents/MacOS/$exe" "$out/bin/${cask.token}"
+            fi
           fi
         ''
         else if isApp
