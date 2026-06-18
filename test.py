@@ -26,6 +26,7 @@ CASKS: list[tuple[Kind, str]] = [
     ("pkg", "alfaview"),  # flat pkg
     ("pkg", "aquaskk"),  # flat pkg
     ("pkg", "sage"),  # dmg with both .app and .pkg
+    ("pkg", "tailscale-app"), # pkg with pbzx
     ("binary", "7777"),  # bare Mach-O (no archive extension)
     ("binary", "ngrok"),  # binary inside zip
     ("binary", "fly"),  # binary inside .tgz

@@ -80,6 +80,7 @@
             xar
             cpio
             fd
+            pbzx
           ]
         );
 
@@ -87,8 +88,11 @@
         if usePkgPath
         then ''
           xar -xf $src
-          for pkg in $(cat Distribution | grep -oE "#.+\.pkg" | sed -e "s/^#//" -e "s/$/\/Payload/"); do
-            zcat $pkg | cpio -i
+          for payload in */Payload; do
+            case "$(file -b "$payload")" in
+              *gzip*) zcat "$payload" | cpio -i ;;
+              *)      pbzx -n "$payload" | cpio -i ;;
+            esac
           done
         ''
         else if isApp
@@ -162,6 +166,21 @@
           if [ -d "Library" ]; then
             mkdir -p $out/Library
             cp -R Library/* $out/Library/
+          fi
+
+          # Component pkgs unpack to a bare Contents/, the contents of a single
+          # .app bundle. Wrap it back into <CFBundleName>.app and expose its
+          # executable in bin/.
+          if [ -f Contents/Info.plist ]; then
+            plist_get() { sed -n "/<key>$1<\/key>/{n;s/.*<string>\(.*\)<\/string>.*/\1/p;}" Contents/Info.plist; }
+            bundle=$(plist_get CFBundleName)
+            app="$out/Applications/''${bundle:-${cask.token}}.app"
+            mkdir -p "$app"
+            cp -R Contents "$app/"
+            exe=$(plist_get CFBundleExecutable)
+            if [ -n "$exe" ] && [ -f "$app/Contents/MacOS/$exe" ]; then
+              makeWrapper "$app/Contents/MacOS/$exe" "$out/bin/${cask.token}"
+            fi
           fi
         ''
         else if isApp
