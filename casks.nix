@@ -98,18 +98,34 @@
         else if isApp
         then ''
           case "$src" in
-            *.zip)            unzip "$src" ;;
+            *.zip)            unzip -q "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
             *)
-              # Try undmg first, then 7zz if it doesn't work
-              # 7zz has weird issues with decompressing many times but supports more formats
+              # Dispatch by content because some cask URLs have no archive extension.
+              # 7zz 26+ rejects "dangerous link via another link" patterns that are
+              # legitimate in macOS .app bundles (e.g. Versions/Current chains in
+              # nested frameworks). Prefer unzip for zip-format archives.
               cp -- "$src" ./archive
-              if ! undmg ./archive 2>/dev/null; then
-                7zz x -snld ./archive
-                find . -name '*:com.apple.*' -print -delete
-              fi
+              mime="$(file --mime-type -b ./archive)"
+              case "$mime" in
+                application/zip)
+                  unzip -q ./archive
+                  ;;
+                application/x-apple-diskimage)
+                  # undmg only supports HFS images
+                  if ! undmg ./archive 2>/dev/null; then
+                    7zz x -snld20 ./archive
+                    find . -name '*:com.apple.*' -print -delete
+                  fi
+                  ;;
+                *)
+                  # Used for APFS images
+                  7zz x -snld20 ./archive
+                  find . -name '*:com.apple.*' -print -delete
+                  ;;
+              esac
               rm -f ./archive
               if [ ! -e "${getApp artifacts}" ]; then
                 nested=$(find . -mindepth 2 -maxdepth 3 -name "${getApp artifacts}" -print -quit)
@@ -123,7 +139,7 @@
         else if isBinary
         then ''
           case "$src" in
-            *.zip)            unzip "$src" ;;
+            *.zip)            unzip -q "$src" ;;
             *.tar.gz|*.tgz)   tar -xzf "$src" ;;
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
@@ -134,6 +150,8 @@
                 gunzip $src -c > ${getBinary artifacts}
               elif [ "$mime" == "application/x-mach-binary" ]; then
                 cp $src ${getBinary artifacts}
+              elif [ "$mime" == "application/zip" ]; then
+                unzip -q "$src"
               else
                 7zz x -snld "$src"
               fi
