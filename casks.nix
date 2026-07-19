@@ -103,21 +103,29 @@
             *.tar.xz)         tar -xJf "$src" ;;
             *.tar.bz2|*.tbz2) tar -xjf "$src" ;;
             *)
-              # Try undmg first, then dispatch by detected mime type
+              # Dispatch by content because some cask URLs have no archive extension.
               # 7zz 26+ rejects "dangerous link via another link" patterns that are
               # legitimate in macOS .app bundles (e.g. Versions/Current chains in
-              # nested frameworks). Prefer unzip for zip-format archives since it
-              # tolerates these links; fall back to 7zz for other archive formats.
+              # nested frameworks). Prefer unzip for zip-format archives.
               cp -- "$src" ./archive
-              if ! undmg ./archive 2>/dev/null; then
-                mime="$(file --mime-type -b ./archive)"
-                if [ "$mime" = "application/zip" ]; then
+              mime="$(file --mime-type -b ./archive)"
+              case "$mime" in
+                application/zip)
                   unzip -q ./archive
-                else
-                  7zz x -snld ./archive
+                  ;;
+                application/x-apple-diskimage)
+                  # undmg only supports HFS images
+                  if ! undmg ./archive 2>/dev/null; then
+                    7zz x -snld20 ./archive
+                    find . -name '*:com.apple.*' -print -delete
+                  fi
+                  ;;
+                *)
+                  # Used for APFS images
+                  7zz x -snld20 ./archive
                   find . -name '*:com.apple.*' -print -delete
-                fi
-              fi
+                  ;;
+              esac
               rm -f ./archive
               if [ ! -e "${getApp artifacts}" ]; then
                 nested=$(find . -mindepth 2 -maxdepth 3 -name "${getApp artifacts}" -print -quit)
