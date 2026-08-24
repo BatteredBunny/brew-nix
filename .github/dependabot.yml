@@ -9,3 +9,8 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+
+  - package-ecosystem: "nix"
+    directory: "/examples"
+    schedule:
+      interval: "monthly"

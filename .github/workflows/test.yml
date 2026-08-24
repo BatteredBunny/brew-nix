@@ -24,3 +24,18 @@ jobs:
 
       - name: Run tests
         run: ./test.py
+
+  flake-check:
+    name: nix flake check
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
+
+      - name: Check flake
+        run: nix flake check --print-build-logs

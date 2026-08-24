@@ -54,18 +54,12 @@
 
       darwinModules.default = lib.modules.importApply ./module.nix { brewCasks = self.overlays.default; };
 
-      checks = forAllSystems (
-        pkgs:
-        let
-          inherit (nix-darwin.packages.${pkgs.stdenv.hostPlatform}) darwin-rebuild;
-        in
-        {
-          build-examples = pkgs.runCommandLocal "build-examples" { } ''
-            export HOME=$(mktemp -d)
-            ${darwin-rebuild}/bin/darwin-rebuild build --flake ${self}/examples#somehost
-            mkdir "$out"
-          '';
-        }
-      );
+      checks = forAllSystems (pkgs: {
+        build-examples =
+          ((import ./examples/flake.nix).outputs {
+            inherit nix-darwin;
+            brew-nix = self;
+          }).darwinConfigurations.somehost.system;
+      });
     };
 }
